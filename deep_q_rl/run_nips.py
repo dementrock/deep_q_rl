@@ -8,6 +8,10 @@ NIPS Deep Learning Workshop 2013
 
 """
 
+import os
+os.environ['CGT_COMPAT_MODE'] = 'theano'
+import cgtcompat as theano
+
 import launcher
 import sys
 
