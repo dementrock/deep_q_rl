@@ -28,7 +28,7 @@ class DeepQLearner:
     def __init__(self, ram_size, num_actions, discount, learning_rate, rho,
                  rms_epsilon, momentum, clip_delta, freeze_interval,
                  batch_size, network_type, update_rule,
-                 batch_accumulator, rng, input_scale=255.0):
+                 batch_accumulator, rng, hidden_sizes, input_scale=255.0):
 
         self.ram_size = ram_size
         self.num_actions = num_actions
@@ -46,9 +46,9 @@ class DeepQLearner:
 
         self.update_counter = 0
 
-        self.l_out = self.build_network(ram_size, num_actions, batch_size)
+        self.l_out = self.build_network(ram_size, num_actions, batch_size, hidden_sizes)
         if self.freeze_interval > 0:
-            self.next_l_out = self.build_network(ram_size, num_actions, batch_size)
+            self.next_l_out = self.build_network(ram_size, num_actions, batch_size, hidden_sizes)
             self.reset_q_hat()
 
         states = T.matrix('states')
@@ -144,8 +144,8 @@ class DeepQLearner:
         self._q_vals = theano.function([], q_vals,
                                        givens={states: self.states_shared})
 
-    def build_network(self, ram_size, output_dim, batch_size):
-        return self.build_ram_network(ram_size, output_dim, batch_size)
+    def build_network(self, ram_size, output_dim, batch_size, hidden_sizes):
+        return self.build_ram_network(ram_size, output_dim, batch_size, hidden_sizes)
 
 
     def train(self, states, actions, rewards, next_states, terminals):
@@ -192,36 +192,24 @@ class DeepQLearner:
         all_params = lasagne.layers.helper.get_all_param_values(self.l_out)
         lasagne.layers.helper.set_all_param_values(self.next_l_out, all_params)
 
-    def build_ram_network(self, ram_size, output_dim, batch_size):
+    def build_ram_network(self, ram_size, output_dim, batch_size, hidden_sizes):
         """
         Build a RAM network.
         """
         l_in = lasagne.layers.InputLayer(
             shape=(batch_size, ram_size)
         )
-        l_hidden1 = lasagne.layers.DenseLayer(
-            l_in,
-            num_units=64,
-            W=lasagne.init.HeUniform(),
-            b=lasagne.init.Constant(0),
-            nonlinearity=lasagne.nonlinearities.tanh,
-        )
-        #l_hidden2 = lasagne.layers.DenseLayer(
-        #    l_hidden1,
-        #    num_units=64,
-        #    W=lasagne.init.HeUniform(),
-        #    b=lasagne.init.Constant(0),
-        #    nonlinearity=lasagne.nonlinearities.tanh,
-        #)
-        #l_hidden3 = lasagne.layers.DenseLayer(
-        #    l_hidden2,
-        #    num_units=64,
-        #    W=lasagne.init.HeUniform(),
-        #    b=lasagne.init.Constant(0),
-        #    nonlinearity=lasagne.nonlinearities.tanh,
-        #)
+        l_hidden = l_in
+        for hidden_size in hidden_sizes:
+            l_hidden = lasagne.layers.DenseLayer(
+                l_hidden,
+                num_units=hidden_size,
+                W=lasagne.init.HeUniform(),
+                b=lasagne.init.Constant(0),
+                nonlinearity=lasagne.nonlinearities.tanh,
+            )
         l_out = lasagne.layers.DenseLayer(
-            l_hidden1,
+            l_hidden,
             num_units=output_dim,
             nonlinearity=None,
             W=lasagne.init.HeUniform(),
