@@ -142,4 +142,5 @@ class ALEExperiment(object):
 
     def get_observation(self):
         """ Resize and merge the previous two screen images """
-        return np.copy(self.ram_buffer)
+        obs = (np.copy(self.ram_buffer) - 128.0) / 128.0
+        return obs

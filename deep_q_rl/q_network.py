@@ -15,8 +15,8 @@ Modifications: Nathan Sprague
 """
 import lasagne
 import numpy as np
-import theano
-import theano.tensor as T
+import cgtcompat as theano
+import cgtcompat.tensor as T
 from updates import deepmind_rmsprop
 
 
@@ -103,8 +103,8 @@ class DeepQLearner:
             # This is equivalent to declaring d loss/d q_vals to be
             # equal to the clipped diff, then backpropagating from
             # there, which is what the DeepMind implementation does.
-            quadratic_part = T.minimum(abs(diff), self.clip_delta)
-            linear_part = abs(diff) - quadratic_part
+            quadratic_part = T.minimum(T.abs(diff), self.clip_delta)
+            linear_part = T.abs(diff) - quadratic_part
             loss = 0.5 * quadratic_part ** 2 + self.clip_delta * linear_part
         else:
             loss = 0.5 * diff ** 2
@@ -164,11 +164,11 @@ class DeepQLearner:
         Returns: average loss
         """
 
-        self.states_shared.set_value(states)
-        self.next_states_shared.set_value(next_states)
-        self.actions_shared.set_value(actions)
-        self.rewards_shared.set_value(rewards)
-        self.terminals_shared.set_value(terminals)
+        theano.compat.set_value(self.states_shared, states)
+        theano.compat.set_value(self.next_states_shared, next_states)
+        theano.compat.set_value(self.actions_shared, actions)
+        theano.compat.set_value(self.rewards_shared, rewards)
+        theano.compat.set_value(self.terminals_shared, terminals)
         if (self.freeze_interval > 0 and
             self.update_counter % self.freeze_interval == 0):
             self.reset_q_hat()
@@ -179,7 +179,7 @@ class DeepQLearner:
     def q_vals(self, state):
         states = np.zeros((self.batch_size, self.ram_size), dtype=theano.config.floatX)
         states[0, ...] = state
-        self.states_shared.set_value(states)
+        theano.compat.set_value(self.states_shared, states)
         return self._q_vals()[0]
 
     def choose_action(self, state, epsilon):
@@ -199,18 +199,32 @@ class DeepQLearner:
         l_in = lasagne.layers.InputLayer(
             shape=(batch_size, ram_size)
         )
-        l_hidden = lasagne.layers.DenseLayer(
+        l_hidden1 = lasagne.layers.DenseLayer(
             l_in,
             num_units=64,
             W=lasagne.init.HeUniform(),
-            b=lasagne.init.Constant(.1),
+            b=lasagne.init.Constant(0),
             nonlinearity=lasagne.nonlinearities.tanh,
         )
+        #l_hidden2 = lasagne.layers.DenseLayer(
+        #    l_hidden1,
+        #    num_units=64,
+        #    W=lasagne.init.HeUniform(),
+        #    b=lasagne.init.Constant(0),
+        #    nonlinearity=lasagne.nonlinearities.tanh,
+        #)
+        #l_hidden3 = lasagne.layers.DenseLayer(
+        #    l_hidden2,
+        #    num_units=64,
+        #    W=lasagne.init.HeUniform(),
+        #    b=lasagne.init.Constant(0),
+        #    nonlinearity=lasagne.nonlinearities.tanh,
+        #)
         l_out = lasagne.layers.DenseLayer(
-            l_hidden,
+            l_hidden1,
             num_units=output_dim,
             nonlinearity=None,
             W=lasagne.init.HeUniform(),
-            b=lasagne.init.Constant(.1)
+            b=lasagne.init.Constant(0)
         )
         return l_out
