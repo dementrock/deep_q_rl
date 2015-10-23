@@ -34,9 +34,7 @@ class NeuralAgent(object):
         self.update_frequency = update_frequency
         self.rng = rng
 
-        self.phi_length = self.network.num_frames
-        self.image_width = self.network.input_width
-        self.image_height = self.network.input_height
+        self.ram_size = self.network.ram_size
 
         # CREATE A FOLDER TO HOLD RESULTS
         time_str = time.strftime("_%m-%d-%H-%M_", time.gmtime())
@@ -52,18 +50,14 @@ class NeuralAgent(object):
         self.num_actions = self.network.num_actions
 
 
-        self.data_set = ale_data_set.DataSet(width=self.image_width,
-                                             height=self.image_height,
+        self.data_set = ale_data_set.DataSet(ram_size=self.ram_size,
                                              rng=rng,
-                                             max_steps=self.replay_memory_size,
-                                             phi_length=self.phi_length)
+                                             max_steps=self.replay_memory_size)
 
         # just needs to be big enough to create phi's
-        self.test_data_set = ale_data_set.DataSet(width=self.image_width,
-                                                  height=self.image_height,
+        self.test_data_set = ale_data_set.DataSet(ram_size=self.ram_size,
                                                   rng=rng,
-                                                  max_steps=self.phi_length * 2,
-                                                  phi_length=self.phi_length)
+                                                  max_steps=2)
         self.epsilon = self.epsilon_start
         if self.epsilon_decay != 0:
             self.epsilon_rate = ((self.epsilon_start - self.epsilon_min) /
@@ -84,7 +78,7 @@ class NeuralAgent(object):
         # In order to add an element to the data set we need the
         # previous state and action and the current reward.  These
         # will be used to store states and actions.
-        self.last_img = None
+        self.last_ram = None
         self.last_action = None
 
     def _open_results_file(self):
@@ -137,7 +131,7 @@ class NeuralAgent(object):
 
         self.last_action = return_action
 
-        self.last_img = observation
+        self.last_ram = observation
 
         return return_action
 
@@ -198,23 +192,18 @@ class NeuralAgent(object):
 
 
         self.last_action = action
-        self.last_img = observation
+        self.last_ram = observation
 
         return action
 
-    def _choose_action(self, data_set, epsilon, cur_img, reward):
+    def _choose_action(self, data_set, epsilon, cur_ram, reward):
         """
         Add the most recent data to the data set and choose
         an action based on the current policy.
         """
 
-        data_set.add_sample(self.last_img, self.last_action, reward, False)
-        if self.step_counter >= self.phi_length:
-            phi = data_set.phi(cur_img)
-            action = self.network.choose_action(phi, epsilon)
-        else:
-            action = self.rng.randint(0, self.num_actions)
-
+        data_set.add_sample(self.last_ram, self.last_action, reward, False)
+        action = self.network.choose_action(cur_ram, epsilon)
         return action
 
     def _do_training(self):
@@ -255,7 +244,7 @@ class NeuralAgent(object):
         else:
 
             # Store the latest sample.
-            self.data_set.add_sample(self.last_img,
+            self.data_set.add_sample(self.last_ram,
                                      self.last_action,
                                      np.clip(reward, -1, 1),
                                      True)

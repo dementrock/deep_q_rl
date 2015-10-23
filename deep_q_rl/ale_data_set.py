@@ -13,7 +13,7 @@ class DataSet(object):
 actions, and rewards.
 
     """
-    def __init__(self, width, height, rng, max_steps=1000, phi_length=4):
+    def __init__(self, ram_size, rng, max_steps=1000):
         """Construct a DataSet.
 
         Arguments:
@@ -28,14 +28,12 @@ actions, and rewards.
         # number of saved time steps.
 
         # Store arguments.
-        self.width = width
-        self.height = height
+        self.ram_size = ram_size
         self.max_steps = max_steps
-        self.phi_length = phi_length
         self.rng = rng
 
         # Allocate the circular buffers and indices.
-        self.imgs = np.zeros((max_steps, height, width), dtype='uint8')
+        self.rams = np.zeros((max_steps, ram_size), dtype='uint8')
         self.actions = np.zeros(max_steps, dtype='int32')
         self.rewards = np.zeros(max_steps, dtype=floatX)
         self.terminal = np.zeros(max_steps, dtype='bool')
@@ -44,7 +42,7 @@ actions, and rewards.
         self.top = 0
         self.size = 0
 
-    def add_sample(self, img, action, reward, terminal):
+    def add_sample(self, ram, action, reward, terminal):
         """Add a time step record.
 
         Arguments:
@@ -54,7 +52,7 @@ actions, and rewards.
             terminal -- boolean indicating whether the episode ended
             after this time step
         """
-        self.imgs[self.top] = img
+        self.rams[self.top] = ram
         self.actions[self.top] = action
         self.rewards[self.top] = reward
         self.terminal[self.top] = terminal
@@ -69,26 +67,29 @@ actions, and rewards.
         """Return an approximate count of stored state transitions."""
         # TODO: Properly account for indices which can't be used, as in
         # random_batch's check.
-        return max(0, self.size - self.phi_length)
+        return max(0, self.size - 1)
 
-    def last_phi(self):
-        """Return the most recent phi (sequence of image frames)."""
-        indexes = np.arange(self.top - self.phi_length, self.top)
-        return self.imgs.take(indexes, axis=0, mode='wrap')
+    def last_ram(self):
+        return self.rams[self.top - 1]
 
-    def phi(self, img):
-        """Return a phi (sequence of image frames), using the last phi_length -
-        1, plus img.
+    #def last_phi(self):
+    #    """Return the most recent phi (sequence of image frames)."""
+    #    indexes = np.arange(self.top - self.phi_length, self.top)
+    #    return self.imgs.take(indexes, axis=0, mode='wrap')
 
-        """
-        indexes = np.arange(self.top - self.phi_length + 1, self.top)
+    #def phi(self, img):
+    #    """Return a phi (sequence of image frames), using the last phi_length -
+    #    1, plus img.
 
-        phi = np.empty((self.phi_length, self.height, self.width), dtype=floatX)
-        phi[0:self.phi_length - 1] = self.imgs.take(indexes,
-                                                    axis=0,
-                                                    mode='wrap')
-        phi[-1] = img
-        return phi
+    #    """
+    #    indexes = np.arange(self.top - self.phi_length + 1, self.top)
+
+    #    phi = np.empty((self.phi_length, self.height, self.width), dtype=floatX)
+    #    phi[0:self.phi_length - 1] = self.imgs.take(indexes,
+    #                                                axis=0,
+    #                                                mode='wrap')
+    #    phi[-1] = img
+    #    return phi
 
     def random_batch(self, batch_size):
         """Return corresponding states, actions, rewards, terminal status, and
@@ -97,47 +98,27 @@ next_states for batch_size randomly chosen state transitions.
         """
         # Allocate the response.
         states = np.zeros((batch_size,
-                           self.phi_length,
-                           self.height,
-                           self.width),
+                           self.ram_size),
                           dtype='uint8')
         actions = np.zeros((batch_size, 1), dtype='int32')
         rewards = np.zeros((batch_size, 1), dtype=floatX)
         terminal = np.zeros((batch_size, 1), dtype='bool')
         next_states = np.zeros((batch_size,
-                                self.phi_length,
-                                self.height,
-                                self.width),
+                                self.ram_size),
                                dtype='uint8')
 
         count = 0
         while count < batch_size:
             # Randomly choose a time step from the replay memory.
             index = self.rng.randint(self.bottom,
-                                     self.bottom + self.size - self.phi_length)
-
-            initial_indices = np.arange(index, index + self.phi_length)
-            transition_indices = initial_indices + 1
-            end_index = index + self.phi_length - 1
-            
-            # Check that the initial state corresponds entirely to a
-            # single episode, meaning none but the last frame may be
-            # terminal. If the last frame of the initial state is
-            # terminal, then the last frame of the transitioned state
-            # will actually be the first frame of a new episode, which
-            # the Q learner recognizes and handles correctly during
-            # training by zeroing the discounted future reward estimate.
-            if np.any(self.terminal.take(initial_indices[0:-1], mode='wrap')):
-                continue
+                                     self.bottom + self.size - 1)
 
             # Add the state transition to the response.
-            states[count] = self.imgs.take(initial_indices, axis=0, mode='wrap')
-            actions[count] = self.actions.take(end_index, mode='wrap')
-            rewards[count] = self.rewards.take(end_index, mode='wrap')
-            terminal[count] = self.terminal.take(end_index, mode='wrap')
-            next_states[count] = self.imgs.take(transition_indices,
-                                                axis=0,
-                                                mode='wrap')
+            states[count] = self.rams[index % self.size]#.take(initial_indices, axis=0, mode='wrap')
+            actions[count] = self.actions[index % self.size]
+            rewards[count] = self.rewards[index % self.size]
+            terminal[count] = self.terminal[index % self.size]#.take(end_index, mode='wrap')
+            next_states[count] = self.rams[(index + 1) % self.size]
             count += 1
 
         return states, actions, rewards, next_states, terminal
@@ -147,36 +128,36 @@ next_states for batch_size randomly chosen state transitions.
 
 def simple_tests():
     np.random.seed(222)
-    dataset = DataSet(width=2, height=3,
+    dataset = DataSet(ram_size=10,
                       rng=np.random.RandomState(42),
-                      max_steps=6, phi_length=4)
+                      max_steps=6)
     for i in range(10):
-        img = np.random.randint(0, 256, size=(3, 2))
+        ram = np.random.randint(0, 256, size=(10,))
         action = np.random.randint(16)
         reward = np.random.random()
         terminal = False
         if np.random.random() < .05:
             terminal = True
-        print 'img', img
-        dataset.add_sample(img, action, reward, terminal)
-        print "I", dataset.imgs
+        print 'ram', ram
+        dataset.add_sample(ram, action, reward, terminal)
+        print "I", dataset.rams
         print "A", dataset.actions
         print "R", dataset.rewards
         print "T", dataset.terminal
         print "SIZE", dataset.size
         print
-    print "LAST PHI", dataset.last_phi()
+    print "LAST RAM", dataset.last_ram()
     print
     print 'BATCH', dataset.random_batch(2)
 
 
 def speed_tests():
 
-    dataset = DataSet(width=80, height=80,
+    dataset = DataSet(ram_size=128,
                       rng=np.random.RandomState(42),
-                      max_steps=20000, phi_length=4)
+                      max_steps=20000)
 
-    img = np.random.randint(0, 256, size=(80, 80))
+    ram = np.random.randint(0, 256, size=(128,))
     action = np.random.randint(16)
     reward = np.random.random()
     start = time.time()
@@ -184,15 +165,13 @@ def speed_tests():
         terminal = False
         if np.random.random() < .05:
             terminal = True
-        dataset.add_sample(img, action, reward, terminal)
+        dataset.add_sample(ram, action, reward, terminal)
     print "samples per second: ", 100000 / (time.time() - start)
 
     start = time.time()
     for i in range(200):
         a = dataset.random_batch(32)
     print "batches per second: ", 200 / (time.time() - start)
-
-    print dataset.last_phi()
 
 
 def trivial_tests():
@@ -208,19 +187,19 @@ def trivial_tests():
     dataset.add_sample(img1, 1, 1, False)
     dataset.add_sample(img2, 2, 2, False)
     dataset.add_sample(img3, 2, 2, True)
-    print "last", dataset.last_phi()
+    print "last", dataset.last_ram()
     print "random", dataset.random_batch(1)
 
 
 def max_size_tests():
-    dataset1 = DataSet(width=3, height=4,
+    dataset1 = DataSet(ram_size=12,
                       rng=np.random.RandomState(42),
-                      max_steps=10, phi_length=4)
-    dataset2 = DataSet(width=3, height=4,
+                      max_steps=10)
+    dataset2 = DataSet(ram_size=12,
                       rng=np.random.RandomState(42),
-                      max_steps=1000, phi_length=4)
+                      max_steps=1000)
     for i in range(100):
-        img = np.random.randint(0, 256, size=(4, 3))
+        img = np.random.randint(0, 256, size=(12,))
         action = np.random.randint(16)
         reward = np.random.random()
         terminal = False
@@ -228,22 +207,22 @@ def max_size_tests():
             terminal = True
         dataset1.add_sample(img, action, reward, terminal)
         dataset2.add_sample(img, action, reward, terminal)
-        np.testing.assert_array_almost_equal(dataset1.last_phi(),
-                                             dataset2.last_phi())
+        np.testing.assert_array_almost_equal(dataset1.last_ram(),
+                                             dataset2.last_ram())
         print "passed"
 
 
 def test_memory_usage_ok():
     import memory_profiler
-    dataset = DataSet(width=80, height=80,
+    dataset = DataSet(ram_size=128,
                       rng=np.random.RandomState(42),
-                      max_steps=100000, phi_length=4)
+                      max_steps=100000)
     last = time.time()
 
     for i in xrange(1000000000):
         if (i % 100000) == 0:
             print i
-        dataset.add_sample(np.random.random((80, 80)), 1, 1, False)
+        dataset.add_sample(np.random.random((128,)), 1, 1, False)
         if i > 200000:
             states, actions, rewards, next_states, terminals = \
                                         dataset.random_batch(32)
@@ -252,7 +231,6 @@ def test_memory_usage_ok():
             mem_usage = memory_profiler.memory_usage(-1)
             print len(dataset), mem_usage
         last = time.time()
-
 
 def main():
     speed_tests()

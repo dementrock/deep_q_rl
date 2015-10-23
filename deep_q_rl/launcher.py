@@ -205,10 +205,8 @@ def launch(args, defaults, description):
     num_actions = len(ale.getMinimalActionSet())
 
     if parameters.nn_file is None:
-        network = q_network.DeepQLearner(defaults.RESIZED_WIDTH,
-                                         defaults.RESIZED_HEIGHT,
+        network = q_network.DeepQLearner(ale.getRAMSize(),
                                          num_actions,
-                                         parameters.phi_length,
                                          parameters.discount,
                                          parameters.learning_rate,
                                          parameters.rms_decay,
@@ -236,9 +234,6 @@ def launch(args, defaults, description):
                                   rng)
 
     experiment = ale_experiment.ALEExperiment(ale, agent,
-                                              defaults.RESIZED_WIDTH,
-                                              defaults.RESIZED_HEIGHT,
-                                              parameters.resize_method,
                                               parameters.epochs,
                                               parameters.steps_per_epoch,
                                               parameters.steps_per_test,

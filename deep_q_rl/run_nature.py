@@ -8,6 +8,9 @@ Nature, 518(7540):529-533, February 2015
 
 """
 
+import os
+os.environ['CGT_COMPAT_MODE'] = 'theano'
+
 import launcher
 import sys
 
