@@ -13,7 +13,7 @@ while True:
     rms_decay = random.choice(rms_decays)
     rms_epsilon = random.choice(rms_epsilons)
     experiment_prefix = "pong_%s_%s" % ("_".join(map(str, hidden_size)), "batch%d" % batch_size)
-    command = """THEANO_FLAGS="device=cpu" python run_nature.py -r pong -e 5 --batch-accumulator mean --hidden-sizes %(hidden_sizes)s --rms-decay %(rms_decay)s --rms-epsilon %(rms_epsilon)s --learning-rate %(learning_rate)s --batch-size %(batch_size)s --experiment-prefix %(prefix)s""" % dict(
+    command = """OMP_NUM_THREADS=1 THEANO_FLAGS="device=cpu" python run_nature.py -r pong -e 10 --batch-accumulator mean --hidden-sizes %(hidden_sizes)s --rms-decay %(rms_decay)s --rms-epsilon %(rms_epsilon)s --learning-rate %(learning_rate)s --batch-size %(batch_size)s --experiment-prefix %(prefix)s""" % dict(
         hidden_sizes=" ".join(map(str, hidden_size)),
         rms_decay=str(rms_decay),
         rms_epsilon=str(rms_epsilon),
