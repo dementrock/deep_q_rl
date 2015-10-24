@@ -205,14 +205,13 @@ class DeepQLearner:
                 l_hidden,
                 num_units=hidden_size,
                 W=lasagne.init.HeUniform(),
-                b=lasagne.init.Constant(0),
-                nonlinearity=lasagne.nonlinearities.tanh,
+                b=lasagne.init.Constant(0.1),
             )
         l_out = lasagne.layers.DenseLayer(
             l_hidden,
             num_units=output_dim,
             nonlinearity=None,
             W=lasagne.init.HeUniform(),
-            b=lasagne.init.Constant(0)
+            b=lasagne.init.Constant(0.1)
         )
         return l_out

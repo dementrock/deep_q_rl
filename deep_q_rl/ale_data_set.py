@@ -33,7 +33,7 @@ actions, and rewards.
         self.rng = rng
 
         # Allocate the circular buffers and indices.
-        self.rams = np.zeros((max_steps, ram_size), dtype='uint8')
+        self.rams = np.zeros((max_steps, ram_size), dtype=floatX)
         self.actions = np.zeros(max_steps, dtype='int32')
         self.rewards = np.zeros(max_steps, dtype=floatX)
         self.terminal = np.zeros(max_steps, dtype='bool')
@@ -98,14 +98,12 @@ next_states for batch_size randomly chosen state transitions.
         """
         # Allocate the response.
         states = np.zeros((batch_size,
-                           self.ram_size),
-                          dtype='uint8')
+                           self.ram_size), dtype=floatX)
         actions = np.zeros((batch_size, 1), dtype='int32')
         rewards = np.zeros((batch_size, 1), dtype=floatX)
         terminal = np.zeros((batch_size, 1), dtype='bool')
         next_states = np.zeros((batch_size,
-                                self.ram_size),
-                               dtype='uint8')
+                                self.ram_size), dtype=floatX)
 
         count = 0
         while count < batch_size:

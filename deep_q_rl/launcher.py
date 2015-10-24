@@ -221,7 +221,9 @@ def launch(args, defaults, description):
                                          parameters.network_type,
                                          parameters.update_rule,
                                          parameters.batch_accumulator,
-                                         rng)
+                                         rng,
+                                         parameters.hidden_sizes,
+                                         )
     else:
         handle = open(parameters.nn_file, 'r')
         network = cPickle.load(handle)
