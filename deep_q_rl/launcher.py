@@ -15,6 +15,7 @@ import theano
 import ale_experiment
 import ale_agent
 import q_network
+from functools import partial
 
 def process_args(args, defaults, description):
     """
@@ -208,7 +209,7 @@ def launch(args, defaults, description):
     num_actions = len(ale.getMinimalActionSet())
 
     if parameters.nn_file is None:
-        network = q_network.DeepQLearner(ale.getRAMSize(),
+        network = q_network.DeepQLearner(q_network.get_obs_size(rom, ale),
                                          num_actions,
                                          parameters.discount,
                                          parameters.learning_rate,
@@ -239,6 +240,7 @@ def launch(args, defaults, description):
                                   rng)
 
     experiment = ale_experiment.ALEExperiment(ale, agent,
+                                              partial(q_network.get_obs, rom),
                                               parameters.epochs,
                                               parameters.steps_per_epoch,
                                               parameters.steps_per_test,

@@ -68,7 +68,7 @@ def search(i):
     rms_decays = [0.9, 0.95, 0.97, 0.99, 0.999, 0.9999, 0.99999]
     rms_epsilons = [0.01, 0.001, 0.1, 0.0001, 0.00001]
 
-    game = "breakout"
+    game = "pong"
 
     time.sleep(i*10)
 
@@ -95,7 +95,7 @@ def search(i):
         launcher.launch(args, Defaults, __doc__)
         time.sleep(1)
 
-#search()
+#search(0)
 #search()
 p = Pool(cpu_count())
 p.map(search, range(cpu_count()))

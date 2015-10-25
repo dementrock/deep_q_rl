@@ -19,6 +19,19 @@ import cgtcompat as theano
 import cgtcompat.tensor as T
 from updates import deepmind_rmsprop
 
+def get_obs_size(rom, ale):
+    if rom.startswith("pong"):
+        return 8
+    else:
+        return ale.getRAMSize()
+
+def get_obs(rom, ram):
+    if rom.startswith("pong"):
+        indices = [3*16 + 3, 3*16 + 12, 3*16 + 1, 3*16 + 6, 0+12, 3*16 + 8,3*16 + 2, 1*16 + 5]
+        sliced = ram[indices]
+        return (sliced - 128.0) / 128.0
+    else:
+        return (ram - 128.0) / 128.0
 
 class DeepQLearner:
     """

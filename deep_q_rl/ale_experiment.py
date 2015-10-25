@@ -15,10 +15,11 @@ CROP_OFFSET = 8
 
 
 class ALEExperiment(object):
-    def __init__(self, ale, agent, num_epochs, epoch_length, test_length,
+    def __init__(self, ale, agent, get_obs, num_epochs, epoch_length, test_length,
                  frame_skip, death_ends_episode, max_start_nullops, rng):
         self.ale = ale
         self.agent = agent
+        self.get_obs = get_obs
         self.num_epochs = num_epochs
         self.epoch_length = epoch_length
         self.test_length = test_length
@@ -141,6 +142,7 @@ class ALEExperiment(object):
 
 
     def get_observation(self):
+        return self.get_obs(self.ram_buffer)
         """ Resize and merge the previous two screen images """
-        obs = (np.copy(self.ram_buffer) - 128.0) / 128.0
-        return obs
+        #obs = (np.copy(self.ram_buffer) - 128.0) / 128.0
+        #return obs
