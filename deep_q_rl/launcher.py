@@ -114,6 +114,9 @@ def process_args(args, defaults, description):
                         type=int, default=defaults.UPDATE_FREQUENCY,
                         help=('Number of actions before each SGD update. '+
                               '(default: %(default)s)'))
+    parser.add_argument('--hidden-sizes', dest="hidden_sizes",
+                        type=int, nargs='+', default=defaults.HIDDEN_SIZES,
+                        help=('Size for each hidden layer'))
     parser.add_argument('--replay-start-size', dest="replay_start_size",
                         type=int, default=defaults.REPLAY_START_SIZE,
                         help=('Number of random steps before training. ' +
@@ -218,7 +221,9 @@ def launch(args, defaults, description):
                                          parameters.network_type,
                                          parameters.update_rule,
                                          parameters.batch_accumulator,
-                                         rng)
+                                         rng,
+                                         parameters.hidden_sizes,
+                                         )
     else:
         handle = open(parameters.nn_file, 'r')
         network = cPickle.load(handle)

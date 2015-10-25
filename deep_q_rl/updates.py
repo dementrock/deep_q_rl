@@ -7,8 +7,8 @@ https://github.com/Lasagne/Lasagne/blob/master/LICENSE
 
 """
 
-import theano
-import theano.tensor as T
+import cgtcompat as theano
+import cgtcompat.tensor as T
 from lasagne.updates import get_or_compute_grads
 from collections import OrderedDict
 import numpy as np
@@ -105,14 +105,14 @@ def deepmind_rmsprop(loss_or_grads, params, learning_rate,
     updates = OrderedDict()
 
     for param, grad in zip(params, grads):
-        value = param.get_value(borrow=True)
+        value = theano.compat.get_value(param, borrow=True)
 
         acc_grad = theano.shared(np.zeros(value.shape, dtype=value.dtype),
-                             broadcastable=param.broadcastable)
+                             broadcastable=theano.compat.broadcastable(param))
         acc_grad_new = rho * acc_grad + (1 - rho) * grad
 
         acc_rms = theano.shared(np.zeros(value.shape, dtype=value.dtype),
-                             broadcastable=param.broadcastable)
+                             broadcastable=theano.compat.broadcastable(param))
         acc_rms_new = rho * acc_rms + (1 - rho) * grad ** 2
 
 
