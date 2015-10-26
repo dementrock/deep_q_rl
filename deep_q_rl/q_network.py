@@ -21,7 +21,7 @@ from updates import deepmind_rmsprop
 
 def get_obs_size(rom, ale):
     if rom.startswith("pong"):
-        return 8
+        return 8*256
     else:
         return ale.getRAMSize()
 
@@ -29,7 +29,10 @@ def get_obs(rom, ram):
     if rom.startswith("pong"):
         indices = [3*16 + 3, 3*16 + 12, 3*16 + 1, 3*16 + 6, 0+12, 3*16 + 8,3*16 + 2, 1*16 + 5]
         sliced = ram[indices]
-        return (sliced - 128.0) / 128.0
+        out = np.zeros(256*len(sliced))
+        for idx, sliced_val in enumerate(sliced):
+            out[idx*256+sliced_val] = 1
+        return out
     else:
         return (ram - 128.0) / 128.0
 
